@@ -1,11 +1,11 @@
-import random
+import random  # used to pick a random pokemon
 
-import altair as alt
-import pandas as pd
-import requests
-import streamlit as st
+import altair as alt  # library for making the charts
+import pandas as pd  # used to read and filter the csv data
+import requests  # used to call the pokeapi
+import streamlit as st  # used to build the web app
 
-st.set_page_config(page_title="Pokédex Explorer · PokéScope", page_icon="🔎", layout="wide")
+st.set_page_config(page_title="Pokédex Explorer · PokéScope", page_icon="🔎", layout="wide")  # sets tab title, icon and wide layout
 
 PAGE_CSS = """
 <style>
@@ -29,9 +29,9 @@ div[data-testid="stMetric"] {
     background: #FFFFFF; border: 1px solid #DDE2EC; border-radius: 16px; padding: 1rem 1.2rem;
 }
 </style>
-"""
+"""  # css styling for the banner, pokeball, badges and metric boxes
 
-TYPE_COLORS = {
+TYPE_COLORS = {  # colour for each pokemon type badge
     "Normal": "#6D6D4E",
     "Fire": "#C62E0A",
     "Water": "#2A5FC9",
@@ -52,9 +52,9 @@ TYPE_COLORS = {
     "Fairy": "#F4A6C8",
 }
 
-TYPES_WITH_DARK_TEXT = ["Electric", "Ice", "Ground", "Steel", "Fairy"]
+TYPES_WITH_DARK_TEXT = ["Electric", "Ice", "Ground", "Steel", "Fairy"]  # light colours that need dark text to be readable
 
-STAT_LABELS = {
+STAT_LABELS = {  # csv column names matched to nice names for the user
     "hp": "HP",
     "attack": "Attack",
     "defense": "Defense",
@@ -63,7 +63,7 @@ STAT_LABELS = {
     "speed": "Speed",
 }
 
-API_STAT_LABELS = {
+API_STAT_LABELS = {  # same thing but for the api, which uses dashes in the names
     "hp": "HP",
     "attack": "Attack",
     "defense": "Defense",
@@ -72,7 +72,7 @@ API_STAT_LABELS = {
     "speed": "Speed",
 }
 
-SORT_COLUMN_NAMES = {
+SORT_COLUMN_NAMES = {  # sort options the user sees, matched to the csv column to sort by
     "Pokédex Number": "pokedex_number",
     "Total Stats": "total_stats",
     "Attack": "attack",
@@ -81,7 +81,7 @@ SORT_COLUMN_NAMES = {
     "Base Experience": "base_experience",
 }
 
-TABLE_COLUMN_LABELS = {
+TABLE_COLUMN_LABELS = {  # columns shown in the results table and their headings
     "pokedex_number": "Pokédex #",
     "name": "Name",
     "primary_type": "Primary Type",
@@ -96,46 +96,46 @@ TABLE_COLUMN_LABELS = {
 }
 
 
-@st.cache_data
-def load_pokemon_data():
-    pokemon_data = pd.read_csv("data/pokemon_data.csv")
-    pokemon_data["secondary_type"] = pokemon_data["secondary_type"].fillna("None")
-    pokemon_data["total_stats"] = (
-        pokemon_data["hp"]
-        + pokemon_data["attack"]
-        + pokemon_data["defense"]
-        + pokemon_data["special_attack"]
-        + pokemon_data["special_defense"]
-        + pokemon_data["speed"]
+@st.cache_data  # saves the result so the csv isnt reloaded every time
+def load_pokemon_data():  # function to load the pokemon data
+    pokemon_data = pd.read_csv("data/pokemon_data.csv")  # reads the csv into a table
+    pokemon_data["secondary_type"] = pokemon_data["secondary_type"].fillna("None")  # fills empty second types with "None"
+    pokemon_data["total_stats"] = (  # makes a new column for total stats
+        pokemon_data["hp"]  # adds hp
+        + pokemon_data["attack"]  # plus attack
+        + pokemon_data["defense"]  # plus defense
+        + pokemon_data["special_attack"]  # plus special attack
+        + pokemon_data["special_defense"]  # plus special defense
+        + pokemon_data["speed"]  # plus speed
     )
-    pokemon_data["generation_label"] = "Generation " + pokemon_data["generation"].astype(str)
-    return pokemon_data
+    pokemon_data["generation_label"] = "Generation " + pokemon_data["generation"].astype(str)  # turns 1 into "Generation 1"
+    return pokemon_data  # gives back the finished table
 
 
-@st.cache_data
-def get_pokemon_details(pokedex_number):
-    api_url = "https://pokeapi.co/api/v2/pokemon/" + str(pokedex_number)
-    response = requests.get(api_url, timeout=10)
-    response.raise_for_status()
-    return response.json()
+@st.cache_data  # saves each api result so the same pokemon isnt downloaded twice
+def get_pokemon_details(pokedex_number):  # function to get one pokemon from the api
+    api_url = "https://pokeapi.co/api/v2/pokemon/" + str(pokedex_number)  # builds the api link using the pokedex number
+    response = requests.get(api_url, timeout=10)  # sends the request and waits up to 10 seconds
+    response.raise_for_status()  # gives an error if the request failed
+    return response.json()  # turns the reply into a python dictionary
 
 
-def make_type_badge(type_name):
-    background_color = TYPE_COLORS.get(type_name, "#555555")
-    text_color = "#FFFFFF"
-    if type_name in TYPES_WITH_DARK_TEXT:
-        text_color = "#1F2430"
-    return f'<span class="type-badge" style="background:{background_color}; color:{text_color};">{type_name}</span>'
+def make_type_badge(type_name):  # function that makes a coloured type label
+    background_color = TYPE_COLORS.get(type_name, "#555555")  # gets the type colour, or grey if not found
+    text_color = "#FFFFFF"  # white text by default
+    if type_name in TYPES_WITH_DARK_TEXT:  # checks if the colour is a light one
+        text_color = "#1F2430"  # uses dark text instead
+    return f'<span class="type-badge" style="background:{background_color}; color:{text_color};">{type_name}</span>'  # returns the badge as html
 
 
-st.markdown(PAGE_CSS, unsafe_allow_html=True)
+st.markdown(PAGE_CSS, unsafe_allow_html=True)  # applies the css to the page
 
-pokemon_data = load_pokemon_data()
+pokemon_data = load_pokemon_data()  # loads the data
 
-if "selected_pokemon" not in st.session_state:
-    st.session_state.selected_pokemon = "Pikachu"
+if "selected_pokemon" not in st.session_state:  # checks if no pokemon is saved yet
+    st.session_state.selected_pokemon = "Pikachu"  # sets pikachu as the starting pokemon
 
-st.markdown(
+st.markdown(  # shows the red banner at the top
     """
     <div class="hero">
         <div class="pokeball"></div>
@@ -148,174 +148,174 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.sidebar.header("🎛️ Filters")
+st.sidebar.header("🎛️ Filters")  # heading at the top of the sidebar
 
-type_options = sorted(pokemon_data["primary_type"].unique())
-selected_types = st.sidebar.multiselect(
-    "Type",
-    type_options,
-    help="Shows Pokémon that have any of the chosen types, as their first or second type.",
+type_options = sorted(pokemon_data["primary_type"].unique())  # gets every type once, in alphabetical order
+selected_types = st.sidebar.multiselect(  # type filter where you can pick more than one
+    "Type",  # label for the filter
+    type_options,  # the types to choose from
+    help="Shows Pokémon that have any of the chosen types, as their first or second type.",  # little help tooltip
 )
 
-data_in_generation_order = pokemon_data.sort_values("generation")
-generation_options = list(data_in_generation_order["generation_label"].unique())
-selected_generations = st.sidebar.multiselect("Generation", generation_options)
+data_in_generation_order = pokemon_data.sort_values("generation")  # sorts the data by generation number
+generation_options = list(data_in_generation_order["generation_label"].unique())  # gets each generation once, in order
+selected_generations = st.sidebar.multiselect("Generation", generation_options)  # generation filter
 
-highest_base_experience = int(pokemon_data["base_experience"].max())
-minimum_base_experience = st.sidebar.slider(
-    "Minimum Base Experience",
-    min_value=0,
-    max_value=highest_base_experience,
-    value=0,
-    step=10,
+highest_base_experience = int(pokemon_data["base_experience"].max())  # finds the highest base experience
+minimum_base_experience = st.sidebar.slider(  # slider for minimum base experience
+    "Minimum Base Experience",  # label for the slider
+    min_value=0,  # lowest value
+    max_value=highest_base_experience,  # highest value
+    value=0,  # starts at 0
+    step=10,  # moves in steps of 10
 )
 
-search_text = st.sidebar.text_input("Search by name", placeholder="e.g. Pikachu")
+search_text = st.sidebar.text_input("Search by name", placeholder="e.g. Pikachu")  # search box for pokemon names
 
-sort_label = st.sidebar.selectbox("Sort results by", list(SORT_COLUMN_NAMES.keys()))
+sort_label = st.sidebar.selectbox("Sort results by", list(SORT_COLUMN_NAMES.keys()))  # dropdown to choose how to sort
 
-st.sidebar.divider()
-surprise_button_clicked = st.sidebar.button("🎲 Surprise Me", type="primary", width="stretch")
-st.sidebar.caption("Picks a random Pokémon from your current results.")
+st.sidebar.divider()  # line in the sidebar
+surprise_button_clicked = st.sidebar.button("🎲 Surprise Me", type="primary", width="stretch")  # true when the button is clicked
+st.sidebar.caption("Picks a random Pokémon from your current results.")  # small text under the button
 
-filtered_data = pokemon_data.copy()
+filtered_data = pokemon_data.copy()  # makes a copy so the original data isnt changed
 
-if len(selected_types) > 0:
-    has_primary_type = filtered_data["primary_type"].isin(selected_types)
-    has_secondary_type = filtered_data["secondary_type"].isin(selected_types)
-    filtered_data = filtered_data[has_primary_type | has_secondary_type]
+if len(selected_types) > 0:  # only filters if a type was picked
+    has_primary_type = filtered_data["primary_type"].isin(selected_types)  # true if the first type matches
+    has_secondary_type = filtered_data["secondary_type"].isin(selected_types)  # true if the second type matches
+    filtered_data = filtered_data[has_primary_type | has_secondary_type]  # keeps pokemon where either type matches
 
-if len(selected_generations) > 0:
-    filtered_data = filtered_data[filtered_data["generation_label"].isin(selected_generations)]
+if len(selected_generations) > 0:  # only filters if a generation was picked
+    filtered_data = filtered_data[filtered_data["generation_label"].isin(selected_generations)]  # keeps the chosen generations
 
-if minimum_base_experience > 0:
-    filtered_data = filtered_data[filtered_data["base_experience"] >= minimum_base_experience]
+if minimum_base_experience > 0:  # only filters if the slider was moved
+    filtered_data = filtered_data[filtered_data["base_experience"] >= minimum_base_experience]  # keeps pokemon above the slider value
 
-if search_text != "":
-    name_matches_search = filtered_data["name"].str.contains(search_text, case=False, regex=False)
-    filtered_data = filtered_data[name_matches_search]
+if search_text != "":  # only searches if something was typed
+    name_matches_search = filtered_data["name"].str.contains(search_text, case=False, regex=False)  # true if the name contains the search
+    filtered_data = filtered_data[name_matches_search]  # keeps the matching names
 
-if filtered_data.empty:
-    st.warning("No Pokémon match those filters. Try removing a filter or changing your search.")
-    st.stop()
+if filtered_data.empty:  # checks if nothing matched
+    st.warning("No Pokémon match those filters. Try removing a filter or changing your search.")  # shows a warning
+    st.stop()  # stops the page so nothing breaks
 
-sort_column_name = SORT_COLUMN_NAMES[sort_label]
-sort_ascending = False
-if sort_label == "Pokédex Number":
-    sort_ascending = True
-sorted_data = filtered_data.sort_values(sort_column_name, ascending=sort_ascending)
+sort_column_name = SORT_COLUMN_NAMES[sort_label]  # gets the column to sort by
+sort_ascending = False  # sorts highest first by default
+if sort_label == "Pokédex Number":  # pokedex number should go low to high
+    sort_ascending = True  # so sort lowest first
+sorted_data = filtered_data.sort_values(sort_column_name, ascending=sort_ascending)  # sorts the results
 
-result_pokemon_names = list(sorted_data["name"])
+result_pokemon_names = list(sorted_data["name"])  # list of names in the results
 
-if surprise_button_clicked:
-    st.session_state.selected_pokemon = random.choice(result_pokemon_names)
+if surprise_button_clicked:  # if surprise me was clicked
+    st.session_state.selected_pokemon = random.choice(result_pokemon_names)  # saves a random pokemon from the results
 
-st.subheader("📋 Your results")
+st.subheader("📋 Your results")  # heading for the results
 
-count_column, attack_column, defense_column, speed_column = st.columns(4)
-count_column.metric("Matching Pokémon", len(filtered_data))
-attack_column.metric("Average Attack", round(filtered_data["attack"].mean(), 1))
-defense_column.metric("Average Defense", round(filtered_data["defense"].mean(), 1))
-speed_column.metric("Average Speed", round(filtered_data["speed"].mean(), 1))
+count_column, attack_column, defense_column, speed_column = st.columns(4)  # makes 4 columns side by side
+count_column.metric("Matching Pokémon", len(filtered_data))  # shows how many pokemon matched
+attack_column.metric("Average Attack", round(filtered_data["attack"].mean(), 1))  # shows the average attack
+defense_column.metric("Average Defense", round(filtered_data["defense"].mean(), 1))  # shows the average defense
+speed_column.metric("Average Speed", round(filtered_data["speed"].mean(), 1))  # shows the average speed
 
-fastest_pokemon = filtered_data.sort_values("speed", ascending=False).iloc[0]
-strongest_attack_pokemon = filtered_data.sort_values("attack", ascending=False).iloc[0]
+fastest_pokemon = filtered_data.sort_values("speed", ascending=False).iloc[0]  # sorts by speed and takes the top one
+strongest_attack_pokemon = filtered_data.sort_values("attack", ascending=False).iloc[0]  # sorts by attack and takes the top one
 
-fastest_column, strongest_column = st.columns(2)
-fastest_column.info(f"⚡ **Fastest in these results:** {fastest_pokemon['name']} (Speed {fastest_pokemon['speed']})")
-strongest_column.info(f"💪 **Strongest Attack in these results:** {strongest_attack_pokemon['name']} (Attack {strongest_attack_pokemon['attack']})")
+fastest_column, strongest_column = st.columns(2)  # makes 2 columns
+fastest_column.info(f"⚡ **Fastest in these results:** {fastest_pokemon['name']} (Speed {fastest_pokemon['speed']})")  # shows the fastest pokemon
+strongest_column.info(f"💪 **Strongest Attack in these results:** {strongest_attack_pokemon['name']} (Attack {strongest_attack_pokemon['attack']})")  # shows the strongest attacker
 
-results_table = sorted_data[list(TABLE_COLUMN_LABELS.keys())]
-results_table = results_table.rename(columns=TABLE_COLUMN_LABELS)
-st.dataframe(results_table, hide_index=True, height=360)
+results_table = sorted_data[list(TABLE_COLUMN_LABELS.keys())]  # keeps only the useful columns
+results_table = results_table.rename(columns=TABLE_COLUMN_LABELS)  # renames the columns to nicer names
+st.dataframe(results_table, hide_index=True, height=360)  # shows the results table
 
-st.divider()
+st.divider()  # line across the page
 
-st.subheader("🪪 Selected Pokémon Profile")
+st.subheader("🪪 Selected Pokémon Profile")  # heading for the profile
 
-default_index = 0
-if st.session_state.selected_pokemon in result_pokemon_names:
-    default_index = result_pokemon_names.index(st.session_state.selected_pokemon)
+default_index = 0  # dropdown starts on the first pokemon by default
+if st.session_state.selected_pokemon in result_pokemon_names:  # checks if the saved pokemon is in the results
+    default_index = result_pokemon_names.index(st.session_state.selected_pokemon)  # finds its position in the list
 
-chosen_pokemon_name = st.selectbox("Choose a Pokémon from your results", result_pokemon_names, index=default_index)
-st.session_state.selected_pokemon = chosen_pokemon_name
+chosen_pokemon_name = st.selectbox("Choose a Pokémon from your results", result_pokemon_names, index=default_index)  # dropdown to pick a pokemon
+st.session_state.selected_pokemon = chosen_pokemon_name  # saves the choice so other pages can use it
 
-chosen_pokemon = sorted_data[sorted_data["name"] == chosen_pokemon_name].iloc[0]
+chosen_pokemon = sorted_data[sorted_data["name"] == chosen_pokemon_name].iloc[0]  # gets the row for the chosen pokemon
 
-try:
-    api_details = get_pokemon_details(int(chosen_pokemon["pokedex_number"]))
-except requests.exceptions.RequestException:
-    api_details = None
+try:  # tries to call the api
+    api_details = get_pokemon_details(int(chosen_pokemon["pokedex_number"]))  # gets the pokemon details using its pokedex number
+except requests.exceptions.RequestException:  # if the api call fails
+    api_details = None  # sets it to none instead of crashing
 
-artwork_url = None
-ability_names = []
-type_names = [chosen_pokemon["primary_type"]]
-if chosen_pokemon["secondary_type"] != "None":
-    type_names.append(chosen_pokemon["secondary_type"])
-height_m = chosen_pokemon["height_m"]
-weight_kg = chosen_pokemon["weight_kg"]
-base_experience = chosen_pokemon["base_experience"]
-stat_labels = []
-stat_values = []
-for stat_column_name in STAT_LABELS:
-    stat_labels.append(STAT_LABELS[stat_column_name])
-    stat_values.append(int(chosen_pokemon[stat_column_name]))
+artwork_url = None  # no image yet
+ability_names = []  # empty list for abilities
+type_names = [chosen_pokemon["primary_type"]]  # starts with the first type from the csv
+if chosen_pokemon["secondary_type"] != "None":  # checks if it has a second type
+    type_names.append(chosen_pokemon["secondary_type"])  # adds the second type
+height_m = chosen_pokemon["height_m"]  # height from the csv
+weight_kg = chosen_pokemon["weight_kg"]  # weight from the csv
+base_experience = chosen_pokemon["base_experience"]  # base experience from the csv
+stat_labels = []  # empty list for stat names
+stat_values = []  # empty list for stat numbers
+for stat_column_name in STAT_LABELS:  # goes through each of the 6 stats
+    stat_labels.append(STAT_LABELS[stat_column_name])  # adds the stat name
+    stat_values.append(int(chosen_pokemon[stat_column_name]))  # adds the stat value
 
-if api_details is None:
-    st.error(
+if api_details is None:  # if the api didnt work
+    st.error(  # shows an error message
         "We couldn't reach PokéAPI right now, so the artwork and abilities are missing. "
         "The stats below come from the saved dataset. Please try again in a moment."
     )
-else:
-    artwork_url = api_details["sprites"]["other"]["official-artwork"]["front_default"]
-    if artwork_url is None:
-        artwork_url = api_details["sprites"]["front_default"]
+else:  # if the api worked
+    artwork_url = api_details["sprites"]["other"]["official-artwork"]["front_default"]  # gets the official artwork link
+    if artwork_url is None:  # if there is no official artwork
+        artwork_url = api_details["sprites"]["front_default"]  # uses the normal sprite instead
 
-    for ability_entry in api_details["abilities"]:
-        ability_name = ability_entry["ability"]["name"].replace("-", " ").title()
-        if ability_entry["is_hidden"]:
-            ability_name = ability_name + " (hidden ability)"
-        ability_names.append(ability_name)
+    for ability_entry in api_details["abilities"]:  # goes through each ability
+        ability_name = ability_entry["ability"]["name"].replace("-", " ").title()  # makes the name look nice
+        if ability_entry["is_hidden"]:  # checks if it is a hidden ability
+            ability_name = ability_name + " (hidden ability)"  # adds a note to it
+        ability_names.append(ability_name)  # adds it to the list
 
-    type_names = []
-    for type_entry in api_details["types"]:
-        type_names.append(type_entry["type"]["name"].capitalize())
+    type_names = []  # clears the types so they arent doubled
+    for type_entry in api_details["types"]:  # goes through each type
+        type_names.append(type_entry["type"]["name"].capitalize())  # adds the type with a capital letter
 
-    height_m = api_details["height"] / 10
-    weight_kg = api_details["weight"] / 10
-    base_experience = api_details["base_experience"]
+    height_m = api_details["height"] / 10  # changes height to metres
+    weight_kg = api_details["weight"] / 10  # changes weight to kilograms
+    base_experience = api_details["base_experience"]  # gets base experience from the api
 
-    stat_labels = []
-    stat_values = []
-    for stat_entry in api_details["stats"]:
-        api_stat_name = stat_entry["stat"]["name"]
-        if api_stat_name in API_STAT_LABELS:
-            stat_labels.append(API_STAT_LABELS[api_stat_name])
-            stat_values.append(stat_entry["base_stat"])
+    stat_labels = []  # clears the stat names
+    stat_values = []  # clears the stat numbers
+    for stat_entry in api_details["stats"]:  # goes through each stat from the api
+        api_stat_name = stat_entry["stat"]["name"]  # gets the api name of the stat
+        if api_stat_name in API_STAT_LABELS:  # checks if it is one of our 6 stats
+            stat_labels.append(API_STAT_LABELS[api_stat_name])  # adds the nice name
+            stat_values.append(stat_entry["base_stat"])  # adds the value
 
-type_badges_html = ""
-for type_name in type_names:
-    type_badges_html = type_badges_html + make_type_badge(type_name)
+type_badges_html = ""  # starts with no badges
+for type_name in type_names:  # goes through each type
+    type_badges_html = type_badges_html + make_type_badge(type_name)  # adds a badge for it
 
-if len(ability_names) > 0:
-    abilities_text = ", ".join(ability_names)
-else:
-    abilities_text = "Unavailable"
+if len(ability_names) > 0:  # if there are abilities
+    abilities_text = ", ".join(ability_names)  # joins them with commas
+else:  # if there are none
+    abilities_text = "Unavailable"  # shows unavailable instead
 
-if pd.isna(base_experience):
-    base_experience_text = "Unknown"
-else:
-    base_experience_text = str(int(base_experience))
+if pd.isna(base_experience):  # checks if base experience is missing
+    base_experience_text = "Unknown"  # shows unknown
+else:  # if it exists
+    base_experience_text = str(int(base_experience))  # turns it into text
 
-with st.container(border=True):
-    profile_column, stats_column = st.columns([2, 3], gap="large")
+with st.container(border=True):  # puts the profile inside a box
+    profile_column, stats_column = st.columns([2, 3], gap="large")  # 2 columns, the right one is wider
 
-    with profile_column:
-        st.header(f"#{chosen_pokemon['pokedex_number']} {chosen_pokemon_name}")
-        st.markdown(type_badges_html, unsafe_allow_html=True)
-        if artwork_url is not None:
-            st.image(artwork_url, caption=f"Official artwork of {chosen_pokemon_name}", width=300)
-        st.markdown(
+    with profile_column:  # left column
+        st.header(f"#{chosen_pokemon['pokedex_number']} {chosen_pokemon_name}")  # shows the number and name
+        st.markdown(type_badges_html, unsafe_allow_html=True)  # shows the type badges
+        if artwork_url is not None:  # only if there is an image
+            st.image(artwork_url, caption=f"Official artwork of {chosen_pokemon_name}", width=300)  # shows the artwork
+        st.markdown(  # shows height, weight, abilities and more
             f"""
             <div class="profile-facts">
             📏 <b>Height:</b> {height_m} m<br>
@@ -328,28 +328,28 @@ with st.container(border=True):
             unsafe_allow_html=True,
         )
 
-    with stats_column:
-        st.subheader("Base Stats")
-        top_row = st.columns(3)
-        bottom_row = st.columns(3)
-        stat_metric_columns = top_row + bottom_row
-        for stat_position in range(len(stat_labels)):
-            stat_metric_columns[stat_position].metric(stat_labels[stat_position], stat_values[stat_position])
+    with stats_column:  # right column
+        st.subheader("Base Stats")  # heading for the stats
+        top_row = st.columns(3)  # first row of 3 boxes
+        bottom_row = st.columns(3)  # second row of 3 boxes
+        stat_metric_columns = top_row + bottom_row  # joins them into one list of 6
+        for stat_position in range(len(stat_labels)):  # goes through positions 0 to 5
+            stat_metric_columns[stat_position].metric(stat_labels[stat_position], stat_values[stat_position])  # shows each stat in its box
 
-        total_stats = sum(stat_values)
-        st.metric("Total Stats", total_stats)
+        total_stats = sum(stat_values)  # adds up all 6 stats
+        st.metric("Total Stats", total_stats)  # shows the total
 
-        stats_chart_data = pd.DataFrame({"Stat": stat_labels, "Value": stat_values})
-        stats_chart = (
-            alt.Chart(stats_chart_data, title=f"Base stats of {chosen_pokemon_name}")
-            .mark_bar(color="#D62828", cornerRadiusEnd=6)
+        stats_chart_data = pd.DataFrame({"Stat": stat_labels, "Value": stat_values})  # makes a small table for the chart
+        stats_chart = (  # builds the bar chart
+            alt.Chart(stats_chart_data, title=f"Base stats of {chosen_pokemon_name}")  # uses the table and adds a title
+            .mark_bar(color="#D62828", cornerRadiusEnd=6)  # red bars with rounded ends
             .encode(
-                x=alt.X("Value:Q", title="Base stat value", scale=alt.Scale(domain=[0, 255])),
-                y=alt.Y("Stat:N", title=None, sort=None),
-                tooltip=["Stat", "Value"],
+                x=alt.X("Value:Q", title="Base stat value", scale=alt.Scale(domain=[0, 255])),  # values on the x axis from 0 to 255
+                y=alt.Y("Stat:N", title=None, sort=None),  # stat names on the y axis in normal order
+                tooltip=["Stat", "Value"],  # shows the numbers when you hover
             )
-            .properties(height=280)
+            .properties(height=280)  # sets the chart height
         )
-        st.altair_chart(stats_chart, width="stretch")
+        st.altair_chart(stats_chart, width="stretch")  # shows the chart
 
-st.caption("Profile details are loaded live from PokéAPI (pokeapi.co). The results table uses the saved PokéAPI CSV dataset.")
+st.caption("Profile details are loaded live from PokéAPI (pokeapi.co). The results table uses the saved PokéAPI CSV dataset.")  # small note about where the data comes from
